@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="Content-Security-Policy"
+            content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://esm.sh; style-src 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net https://esm.sh; worker-src blob:; frame-src blob:; base-uri 'none'; form-action 'none';">
+        <script type="importmap">
+        {
+            "imports": {
+                "@polkadot/util": "./libs/@polkadot_util@13.4.4/index.js",
+                "@polkadot/util-crypto": "./libs/@polkadot_util-crypto@13.4.4/index.js",
+                "@polkadot/wasm-crypto": "./libs/@polkadot_wasm-crypto@7.4.1/index.js",
+                "@polkadot/wasm-bridge": "./libs/@polkadot_wasm-bridge@7.4.1/index.js",
+                "@polkadot/wasm-util": "./libs/@polkadot_wasm-util@7.4.1/index.js",
+                "@polkadot/networks": "./libs/npm/@polkadot/networks@13.4.4/+esm.js",
+                "@polkadot/x-bigint": "./libs/npm/@polkadot/x-bigint@13.4.4/+esm.js",
+                "@noble/hashes": "./libs/@noble_hashes_utils@1.7.1.js",
+                "@noble/curves": "./libs/@noble_curves_secp256k1.js",
+                "@scure/base": "./libs/@scure_base@1.2.4.js",
+                "@scure/bip32": "./libs/@scure_bip32@1.6.2.js",
+                "@scure/bip39": "./libs/@scure_bip39@1.5.4.js",
+                "tweetnacl": "./libs/tweetnacl@1.0.3.js"
+            }
+        }
+        </script>
+    <title>Enjin Snap Wallet Exporter</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .container { max-width: 720px; margin: 0 auto; }
+
+        h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+        .subtitle { color: #8b949e; margin-bottom: 1.5rem; font-size: 0.95rem; }
+
+        .warning {
+            background: #3d1f00;
+            border: 1px solid #d29922;
+            border-radius: 8px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+        .card h2 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+
+        textarea, input[type="password"], input[type="text"] {
+            width: 100%;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            padding: 0.6rem 0.75rem;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+        }
+        textarea:focus, input:focus { outline: none; border-color: #58a6ff; }
+
+        button {
+            background: #238636;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 0.55rem 1rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 0.75rem;
+        }
+        button:hover { background: #2ea043; }
+        button:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+
+        .btn-sm {
+            background: transparent;
+            border: 1px solid #30363d;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+            margin: 0;
+            flex-shrink: 0;
+        }
+        .btn-sm:hover { background: #30363d; }
+
+        /* Make small buttons visually consistent with primary buttons inside cards */
+        .card .btn-sm {
+            padding: 0.45rem 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            height: 36px;
+            border-radius: 6px;
+        }
+
+        .card button {
+            height: 36px;
+            margin-top: 0;
+        }
+
+        .btn-download {
+            min-width: 220px;
+            text-align: center;
+        }
+
+        .instructions {
+            margin-top: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            background: #0d1117;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: #8b949e;
+            line-height: 1.5;
+        }
+        .instructions p { margin-bottom: 0.4rem; }
+        .instructions p:last-child { margin-bottom: 0; }
+        .instructions ol {
+            margin: 0.3rem 0 0 1.2rem;
+            padding: 0;
+        }
+        .instructions li {
+            margin-bottom: 0.25rem;
+        }
+        .instructions em {
+            color: #79c0ff;
+            font-style: normal;
+        }
+
+        .result-group { margin-bottom: 1rem; }
+        .result-group label {
+            display: block;
+            color: #8b949e;
+            font-size: 0.8rem;
+            margin-bottom: 0.3rem;
+        }
+        .result-value {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 0.45rem 0.6rem;
+        }
+        .result-value code {
+            flex: 1;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.82rem;
+            word-break: break-all;
+            color: #79c0ff;
+        }
+        .sensitive code { color: #f0883e; }
+
+        .input-group { margin-bottom: 0.75rem; }
+        .input-group label {
+            display: block;
+            color: #8b949e;
+            font-size: 0.8rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .unavailable {
+            color: #484f58;
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+
+        #loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            color: #8b949e;
+        }
+        .spinner {
+            width: 32px; height: 32px;
+            border: 3px solid #30363d;
+            border-top-color: #58a6ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 1rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error { color: #f85149; font-size: 0.85rem; margin-top: 0.5rem; }
+        .success { color: #3fb950; font-size: 0.85rem; margin-top: 0.5rem; }
+
+        footer {
+            text-align: center;
+            color: #484f58;
+            font-size: 0.8rem;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #21262d;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            .container {
+                max-width: 100%;
+            }
+            h1 {
+                font-size: 1.4rem;
+            }
+            .card {
+                padding: 1rem;
+            }
+            button {
+                font-size: 0.85rem;
+                padding: 0.5rem 0.9rem;
+            }
+            .btn-sm {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.6rem;
+            }
+            .card .btn-sm {
+                padding: 0.4rem 0.6rem;
+                height: 32px;
+            }
+            .card button {
+                height: 32px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0.75rem;
+            }
+            h1 {
+                font-size: 1.2rem;
+            }
+            .subtitle {
+                font-size: 0.9rem;
+            }
+            .warning {
+                padding: 0.8rem 0.9rem;
+                font-size: 0.85rem;
+            }
+            .card h2 {
+                font-size: 1rem;
+            }
+            .card h3 {
+                font-size: 0.95rem;
+            }
+            textarea {
+                font-size: 0.8rem;
+            }
+            .result-value {
+                padding: 0.4rem 0.5rem;
+            }
+            .result-value code {
+                font-size: 0.75rem;
+            }
+            /* Stack buttons vertically on very small screens */
+            .card div[style*="display:flex"] {
+                flex-direction: column;
+                gap: 0.4rem;
+            }
+            .card div[style*="display:flex"] button {
+                width: 100%;
+                margin-bottom: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Loading cryptographic libraries…</p>
+            <p id="loadError" class="error" style="display:none; margin-top:1rem;"></p>
+        </div>
+
+        <div id="app" style="display:none">
+            <h1>🔐 Enjin Snap Wallet Exporter</h1>
+            <p class="subtitle">Derive addresses and export keys from your recovery phrase</p>
+
+            <div class="warning">
+                ⚠️ <strong>Security Warning:</strong> For maximum security, disconnect from the
+                internet before entering your recovery phrase. This page runs entirely in your
+                browser — no data is sent to any server.
+            </div>
+
+            <section class="card">
+                <h2>Recovery Phrase</h2>
+                <textarea id="mnemonic" rows="3"
+                          placeholder="Enter your 12 or 24 word recovery phrase…"
+                          autocomplete="off" autocorrect="off" autocapitalize="off"
+                          spellcheck="false" data-gramm="false"></textarea>
+                <button id="deriveBtn">Derive Addresses</button>
+            </section>
+
+            <section id="results" class="card" style="display:none">
+                <h2>Derived Addresses</h2>
+
+                <div class="result-group">
+                    <label>Ethereum (m/44'/60'/0'/0/0)</label>
+                    <div class="result-value">
+                        <code id="ethAddress"></code>
+                        <button class="btn-sm" data-copy="ethAddress" title="Copy">📋</button>
+                    </div>
+                </div>
+
+                <div class="result-group">
+                    <label>Matrixchain sr25519 (blank derivation)</label>
+                    <div class="result-value">
+                        <code id="sr25519Address"></code>
+                        <button class="btn-sm" data-copy="sr25519Address" title="Copy">📋</button>
+                    </div>
+                </div>
+
+                <div class="result-group">
+                    <label>Enjin Snap ed25519 (m/44'/1155' seed logic)</label>
+                    <div class="result-value">
+                        <code id="snapAddress"></code>
+                        <button class="btn-sm" data-copy="snapAddress" title="Copy">📋</button>
+                    </div>
+                </div>
+
+                <div class="result-group">
+                    <label>Public Key</label>
+                    <div class="result-value">
+                        <code id="publicKey"></code>
+                        <button class="btn-sm" data-copy="publicKey" title="Copy">📋</button>
+                    </div>
+                </div>
+
+                <div class="result-group">
+                    <label>Private Key (hex seed) — keep secret!</label>
+                    <div class="result-value sensitive">
+                        <code id="privateKey"></code>
+                        <button class="btn-sm" id="togglePk" title="Show / Hide">👁</button>
+                        <button class="btn-sm" data-copy="privateKey" title="Copy">📋</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="keystoreSection" class="card" style="display:none">
+                <h2>Keystore Export</h2>
+                <p style="color:#8b949e; font-size:0.85rem; margin-bottom:0.75rem;">
+                    Export an encrypted JSON keystore for importing into the Enjin Wallet.
+                </p>
+
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter password for keystore"
+                           autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" placeholder="Confirm password"
+                           autocomplete="off">
+                </div>
+                <div class="card" style="margin-bottom:0.75rem;">
+                    <h3 style="font-size:1rem; margin-bottom:0.5rem;">Ethereum v3 (Web3)</h3>
+                    <p style="color:#3fb950; font-size:0.8rem; margin-bottom:0.5rem;">✓ Recommended — supported by Enjin Wallet</p>
+                    <div style="display:flex; align-items: center; gap:0.5rem;">
+                        <button id="downloadWeb3Btn" class="btn-download">Download Web3 Keystore</button>
+                        <button class="btn-sm" id="copyWeb3Btn">Copy</button>
+                    </div>
+                    <div class="instructions">
+                        <p><strong>Import into Enjin Wallet:</strong></p>
+                        <ol>
+                            <li>Go to <em>Settings → Wallets → Add Wallet → Import Wallet → Import Keystore</em></li>
+                            <li>Paste the keystore content into the "Import Keystore" field</li>
+                            <li>Enter the password in the "Encryption Password" field</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="font-size:1rem; margin-bottom:0.5rem;">Polkadot-style (scrypt + xsalsa20-poly1305)</h3>
+                    <p style="color:#f0883e; font-size:0.8rem; margin-bottom:0.5rem;">⚠ Not supported by Enjin Wallet</p>
+                    <div style="display:flex; align-items: center; gap:0.5rem;">
+                        <button id="downloadPolkadotBtn" class="btn-download">Download Polkadot Keystore</button>
+                        <button class="btn-sm" id="copyPolkadotBtn">Copy</button>
+                    </div>
+                    <div class="instructions">
+                        <p><strong>Note:</strong> Enjin Wallet does not currently support this format.</p>
+                        <p>This format is compatible with Polkadot.js and other Substrate-based wallets.</p>
+                    </div>
+                </div>
+
+                <p id="keystoreStatus"></p>
+            </section>
+
+            <footer>
+                Enjin Snap Wallet Exporter &middot; Runs 100% in your browser &middot;
+                <a href="https://github.com/bladzv/enjin-snap-wallet-exporter" style="color:#58a6ff;" target="_blank">GitHub</a>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Load Polkadot UMD bundles for offline sr25519 support -->
+    <script src="./libs/@polkadot_util@13.4.4/bundle-polkadot-util.js"></script>
+    <script src="./libs/@polkadot_util-crypto@13.4.4/bundle-polkadot-util-crypto.js"></script>
+    <script>
+        // Expose the UMD bundle as window.polkadotUtilCrypto for the module script
+        if (typeof polkadotUtilCrypto !== 'undefined') {
+            window.polkadotUtilCrypto = polkadotUtilCrypto;
+        }
+    </script>
+
+    <script type="module">
+        // ─── Local-first imports (vendor libs in ./libs/) with CDN fallback ──
+        // This tries relative `./libs/...` files first so the page works fully offline
+        let HDKey, mnemonicToSeedSync, validateMnemonic, wordlist, base58, secp256k1, keccak_256, blake2b, scryptAsync, nacl;
+
+        async function tryImport(localPath, cdnPath) {
+            try {
+                return await import(localPath);
+            } catch (e) {
+                return await import(cdnPath);
+            }
+        }
+
+        try {
+            const bip32Module = await tryImport('./libs/@scure_bip32@1.6.2.js', 'https://cdn.jsdelivr.net/npm/@scure/bip32@1.6.2/+esm');
+            const bip39Module = await tryImport('./libs/@scure_bip39@1.5.4.js', 'https://cdn.jsdelivr.net/npm/@scure/bip39@1.5.4/+esm');
+            const bip39WordlistModule = await tryImport('./libs/@scure_bip39_wordlist_english.js', 'https://cdn.jsdelivr.net/npm/@scure/bip39@1.5.4/wordlists/english/+esm');
+            const baseModule = await tryImport('./libs/@scure_base@1.2.4.js', 'https://cdn.jsdelivr.net/npm/@scure/base@1.2.4/+esm');
+            const secp256k1Module = await tryImport('./libs/@noble_curves_secp256k1.js', 'https://cdn.jsdelivr.net/npm/@noble/curves@1.8.1/secp256k1/+esm');
+            const sha3Module = await tryImport('./libs/@noble_hashes_sha3.js', 'https://cdn.jsdelivr.net/npm/@noble/hashes@1.7.1/sha3/+esm');
+            const blake2bModule = await tryImport('./libs/@noble_hashes_blake2b.js', 'https://cdn.jsdelivr.net/npm/@noble/hashes@1.7.1/blake2b/+esm');
+            const scryptModule = await tryImport('./libs/@noble_hashes_scrypt.js', 'https://cdn.jsdelivr.net/npm/@noble/hashes@1.7.1/scrypt/+esm');
+            const naclModule = await tryImport('./libs/tweetnacl@1.0.3.js', 'https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/+esm');
+
+            HDKey = bip32Module.HDKey;
+            mnemonicToSeedSync = bip39Module.mnemonicToSeedSync;
+            validateMnemonic = bip39Module.validateMnemonic;
+            wordlist = bip39WordlistModule.wordlist;
+            base58 = baseModule.base58;
+            secp256k1 = secp256k1Module.secp256k1;
+            keccak_256 = sha3Module.keccak_256;
+            blake2b = blake2bModule.blake2b;
+            scryptAsync = scryptModule.scryptAsync;
+            nacl = naclModule.default || naclModule;
+        } catch (e) {
+            console.error('Failed to load cryptographic libraries (local or CDN):', e);
+            throw new Error('Failed to load cryptographic libraries. For offline use, place the required +esm bundles in ./libs/ or open this page via a local HTTP server to use CDN fallbacks.');
+        }
+
+        // ─── Optional: sr25519 via Polkadot WASM ─────────────────────
+        let sr25519Available = false;
+        let polkadotCrypto   = null;
+
+        // sr25519 via Polkadot UMD bundle (works offline, no ESM resolution needed)
+        // The bundle is loaded via script tag and exposes window.polkadotUtilCrypto
+        if (typeof window.polkadotUtilCrypto !== 'undefined') {
+            polkadotCrypto = window.polkadotUtilCrypto;
+            try {
+                if (typeof polkadotCrypto.cryptoWaitReady === 'function') {
+                    await polkadotCrypto.cryptoWaitReady();
+                    sr25519Available = true;
+                } else if (polkadotCrypto.isReady) {
+                    sr25519Available = true;
+                }
+            } catch (e) {
+                console.warn('sr25519 WASM init failed:', e);
+            }
+        } else {
+            // Fallback: try CDN if local bundle not available
+            try {
+                polkadotCrypto = await import('https://esm.sh/@polkadot/util-crypto@13.4.4');
+                if (polkadotCrypto && typeof polkadotCrypto.cryptoWaitReady === 'function') {
+                    await polkadotCrypto.cryptoWaitReady();
+                    sr25519Available = true;
+                }
+            } catch (e) {
+                console.warn('sr25519 not available (WASM failed to load):', e);
+            }
+        }
+
+        // ─── Helpers ──────────────────────────────────────────────────
+        const SS58_FORMAT = 1110;
+
+        function bytesToHex(bytes) {
+            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function concatBytes(...arrays) {
+            const total = arrays.reduce((s, a) => s + a.length, 0);
+            const out = new Uint8Array(total);
+            let offset = 0;
+            for (const a of arrays) { out.set(a, offset); offset += a.length; }
+            return out;
+        }
+
+        function uint32LE(n) {
+            const buf = new Uint8Array(4);
+            new DataView(buf.buffer).setUint32(0, n, true);
+            return buf;
+        }
+
+        /** SS58 encode a 32-byte public key with a network prefix ≥ 64 (2-byte prefix). */
+        function ss58Encode(publicKey, prefix) {
+            const byte1 = ((prefix & 0xfc) >> 2) | 0x40;
+            const byte2 = (prefix >> 8) | ((prefix & 0x03) << 6);
+            const prefixBytes = new Uint8Array([byte1, byte2]);
+
+            const payload = concatBytes(prefixBytes, publicKey);
+            const ss58Pre = new TextEncoder().encode('SS58PRE');
+            const hashInput = concatBytes(ss58Pre, payload);
+            const hash = blake2b(hashInput, { dkLen: 64 });
+            const checksum = hash.slice(0, 2);
+
+            return base58.encode(concatBytes(payload, checksum));
+        }
+
+        /** EIP-55 mixed-case checksum address. */
+        function toChecksumAddress(address) {
+            const addr = address.toLowerCase().replace('0x', '');
+            const hashHex = bytesToHex(keccak_256(new TextEncoder().encode(addr)));
+            let result = '0x';
+            for (let i = 0; i < 40; i++) {
+                result += parseInt(hashHex[i], 16) >= 8 ? addr[i].toUpperCase() : addr[i];
+            }
+            return result;
+        }
+
+        // ─── Derivation functions ─────────────────────────────────────
+
+        function deriveEthereum(seed) {
+            const root  = HDKey.fromMasterSeed(seed);
+            const child = root.derive("m/44'/60'/0'/0/0");
+            const pub   = secp256k1.getPublicKey(child.privateKey, false).slice(1); // uncompressed, no 04 prefix
+            const hash  = keccak_256(pub);
+            const addr  = '0x' + bytesToHex(hash.slice(-20));
+            return toChecksumAddress(addr);
+        }
+
+        function deriveSr25519(mnemonic) {
+            if (!sr25519Available) return null;
+            const miniSecret = polkadotCrypto.mnemonicToMiniSecret(mnemonic);
+            const pair       = polkadotCrypto.sr25519PairFromSeed(miniSecret);
+            return ss58Encode(pair.publicKey, SS58_FORMAT);
+        }
+
+        function deriveEnjinSnap(seed) {
+            // SLIP-10 secp256k1 at m/44'/1155'
+            const root  = HDKey.fromMasterSeed(seed);
+            const child = root.derive("m/44'/1155'");
+            const privKeyHex = '0x' + bytesToHex(child.privateKey);
+
+            // .slice(0, 32) then UTF-8 encode — replicates the snap's account.ts
+            const seedStr   = privKeyHex.slice(0, 32);
+            const seedBytes = new TextEncoder().encode(seedStr);
+
+            // ed25519 keypair from seed
+            const kp = nacl.sign.keyPair.fromSeed(seedBytes);
+
+            return {
+                address:    ss58Encode(kp.publicKey, SS58_FORMAT),
+                publicKey:  kp.publicKey,
+                seedBytes:  seedBytes,
+            };
+        }
+
+        // ─── Keystore builder ─────────────────────────────────────────
+
+        async function buildKeystore(publicKey, seedBytes, password) {
+            const pkcs8Header  = new Uint8Array([
+                0x30, 0x53, 0x02, 0x01, 0x01, 0x30, 0x05, 0x06,
+                0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20
+            ]);
+            const pkcs8Divider = new Uint8Array([0xa1, 0x23, 0x03, 0x21, 0x00]);
+            const plaintext    = concatBytes(pkcs8Header, seedBytes, pkcs8Divider, publicKey);
+
+            // scrypt parameters (match Polkadot.js defaults — do not change)
+            const N = 1 << 15, p = 1, r = 8;
+            const salt  = nacl.randomBytes(32);
+            const nonce = nacl.randomBytes(24);
+
+            const passwordBytes = new TextEncoder().encode(password);
+            const key = await scryptAsync(passwordBytes, salt, { N, r, p, dkLen: 32 });
+
+            const encrypted = nacl.secretbox(plaintext, nonce, key);
+
+            const encoded = concatBytes(salt, uint32LE(N), uint32LE(p), uint32LE(r), nonce, encrypted);
+            const encodedB64 = btoa(String.fromCharCode(...encoded));
+
+            const address = ss58Encode(publicKey, SS58_FORMAT);
+
+            return {
+                encoded: encodedB64,
+                encoding: {
+                    content: ['pkcs8', 'ed25519'],
+                    type:    ['scrypt', 'xsalsa20-poly1305'],
+                    version: '3'
+                },
+                address,
+                meta: { name: 'Enjin Snap', whenCreated: Date.now() }
+            };
+        }
+
+        // ─── Ethereum v3 Web3 keystore builder (scrypt + aes-128-ctr) ──
+        async function buildWeb3Keystore(seedBytes, password) {
+            // private key hex (no 0x prefix for storage)
+            const privHex = bytesToHex(seedBytes);
+            const privBytes = seedBytes;
+
+            // derive address from private key using secp256k1
+            const pub = secp256k1.getPublicKey(privBytes, false).slice(1);
+            const addrHex = '0x' + bytesToHex(keccak_256(pub).slice(-20));
+            const address = toChecksumAddress(addrHex);
+
+            // scrypt params (common Ethereum keystore defaults)
+            const N = 1 << 18; // 262144
+            const r = 8;
+            const p = 1;
+            const dkLen = 32;
+
+            const salt = nacl.randomBytes(32);
+            const passwordBytes = new TextEncoder().encode(password);
+            const derived = await scryptAsync(passwordBytes, salt, { N, r, p, dkLen });
+
+            const cipherKey = derived.slice(0, 16);
+            const macKey = derived.slice(16, 32);
+
+            // iv for AES-CTR (16 bytes)
+            const iv = nacl.randomBytes(16);
+
+            // encrypt using WebCrypto AES-CTR
+            const cryptoKey = await crypto.subtle.importKey('raw', cipherKey, { name: 'AES-CTR' }, false, ['encrypt']);
+            const ctBuf = await crypto.subtle.encrypt({ name: 'AES-CTR', counter: iv, length: 128 }, cryptoKey, privBytes);
+            const ciphertext = new Uint8Array(ctBuf);
+
+            // mac = keccak256(macKey || ciphertext)
+            const macBytes = keccak_256(concatBytes(macKey, ciphertext));
+
+            // build kdf and crypto objects per Web3 keystore v3
+            const kdfparams = { dklen: dkLen, salt: btoa(String.fromCharCode(...salt)), n: N, r: r, p: p };
+            const cipherparams = { iv: btoa(String.fromCharCode(...iv)) };
+
+            function toHex(arr) { return bytesToHex(arr); }
+
+            const keystore = {
+                version: 3,
+                id: ([1e7]+-1e3+-4e3+-8e3+-1e11).toString().replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)),
+                address: address.replace('0x',''),
+                crypto: {
+                    ciphertext: toHex(ciphertext),
+                    cipherparams: { iv: toHex(iv) },
+                    cipher: 'aes-128-ctr',
+                    kdf: 'scrypt',
+                    kdfparams: {
+                        dklen: dkLen,
+                        salt: toHex(salt),
+                        n: N,
+                        r: r,
+                        p: p
+                    },
+                    mac: bytesToHex(macBytes)
+                }
+            };
+
+            return keystore;
+        }
+
+        // ─── Clipboard helper ─────────────────────────────────────────
+
+        async function copyText(text) {
+            try { await navigator.clipboard.writeText(text); }
+            catch { /* fallback — ignored in offline contexts */ }
+        }
+
+        // ─── State ────────────────────────────────────────────────────
+        let currentSnap = null;   // { address, publicKey, seedBytes }
+        let pkVisible   = false;
+        let realPkText  = '';
+
+        // ─── UI wiring ───────────────────────────────────────────────
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('app').style.display     = 'block';
+
+        // If we reached here, all critical imports loaded successfully.
+        // The global error handler below covers CDN failures.
+        window.__importsLoaded = true;
+
+        document.getElementById('deriveBtn').addEventListener('click', () => {
+            const mnemonic = document.getElementById('mnemonic').value.trim();
+            if (!mnemonic) return;
+
+            if (!validateMnemonic(mnemonic, wordlist)) {
+                alert('Invalid mnemonic. Please enter a valid 12 or 24 word BIP-39 recovery phrase.');
+                return;
+            }
+
+            const seed = mnemonicToSeedSync(mnemonic);
+
+            // Ethereum
+            try {
+                document.getElementById('ethAddress').textContent = deriveEthereum(seed);
+            } catch (e) {
+                document.getElementById('ethAddress').textContent = 'Error: ' + e.message;
+            }
+
+            // sr25519
+            try {
+                const sr = deriveSr25519(mnemonic);
+                document.getElementById('sr25519Address').textContent =
+                    sr ?? 'Unavailable (sr25519 requires WASM — use Python script)';
+                if (!sr) document.getElementById('sr25519Address').classList.add('unavailable');
+            } catch (e) {
+                document.getElementById('sr25519Address').textContent = 'Error: ' + e.message;
+            }
+
+            // Enjin Snap ed25519
+            try {
+                currentSnap = deriveEnjinSnap(seed);
+                document.getElementById('snapAddress').textContent = currentSnap.address;
+                document.getElementById('publicKey').textContent =
+                    '0x' + bytesToHex(currentSnap.publicKey);
+                realPkText = '0x' + bytesToHex(currentSnap.seedBytes);
+                pkVisible = false;
+                document.getElementById('privateKey').textContent = '••••••••••••••••';
+            } catch (e) {
+                document.getElementById('snapAddress').textContent = 'Error: ' + e.message;
+            }
+
+            document.getElementById('results').style.display        = 'block';
+            document.getElementById('keystoreSection').style.display = 'block';
+        });
+
+        // Copy buttons
+        document.querySelectorAll('[data-copy]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id   = btn.dataset.copy;
+                const text = id === 'privateKey' ? realPkText
+                           : document.getElementById(id).textContent;
+                copyText(text);
+                const orig = btn.textContent;
+                btn.textContent = '✓';
+                setTimeout(() => btn.textContent = orig, 1200);
+            });
+        });
+
+        // Toggle private key visibility
+        document.getElementById('togglePk').addEventListener('click', () => {
+            pkVisible = !pkVisible;
+            document.getElementById('privateKey').textContent =
+                pkVisible ? realPkText : '••••••••••••••••';
+        });
+
+        // Export keystore
+        // Helpers for download/copy actions for each keystore format
+        async function produceKeystore(format, password) {
+            if (format === 'web3') {
+                return await buildWeb3Keystore(currentSnap.seedBytes, password);
+            }
+            return await buildKeystore(currentSnap.publicKey, currentSnap.seedBytes, password);
+        }
+
+        async function handleAction(format, action, btn) {
+            const status = document.getElementById('keystoreStatus');
+            status.textContent = '';
+            status.className = '';
+
+            if (!currentSnap) {
+                status.textContent = 'Derive addresses first.';
+                status.className = 'error';
+                return;
+            }
+
+            const pw  = document.getElementById('password').value;
+            const pw2 = document.getElementById('confirmPassword').value;
+
+            if (!pw)        { status.textContent = 'Password cannot be empty.';  status.className = 'error'; return; }
+            if (pw !== pw2) { status.textContent = 'Passwords do not match.';    status.className = 'error'; return; }
+
+            btn.disabled = true;
+            const origText = btn.textContent;
+            btn.textContent = 'Working…';
+
+            try {
+                const keystore = await produceKeystore(format, pw);
+                const json = JSON.stringify(keystore, null, 2);
+
+                if (action === 'download') {
+                    const blob = new Blob([json], { type: 'application/json' });
+                    const url  = URL.createObjectURL(blob);
+                    const a    = document.createElement('a');
+                    const namePrefix = format === 'web3' ? 'enjin-snap-keystore-web3' : 'enjin-snap-keystore';
+                    const address = keystore.address || (currentSnap.address || 'unknown');
+                    const ts = Math.floor(Date.now() / 1000);
+                    a.href = url;
+                    a.download = `${namePrefix}-${address.slice(0,8)}-${ts}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    status.textContent = `${format === 'web3' ? 'Web3' : 'Polkadot'} keystore downloaded for ${address}`;
+                    status.className = 'success';
+                } else {
+                    try { await navigator.clipboard.writeText(json); } catch (e) { await copyText(json); }
+                    status.textContent = `${format === 'web3' ? 'Web3' : 'Polkadot'} keystore copied to clipboard`;
+                    status.className = 'success';
+                }
+            } catch (e) {
+                status.textContent = 'Error: ' + e.message;
+                status.className = 'error';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = origText;
+            }
+        }
+
+        // Wire buttons
+        document.getElementById('downloadWeb3Btn').addEventListener('click', function () { handleAction('web3', 'download', this); });
+        document.getElementById('copyWeb3Btn').addEventListener('click', function () { handleAction('web3', 'copy', this); });
+        document.getElementById('downloadPolkadotBtn').addEventListener('click', function () { handleAction('polkadot', 'download', this); });
+        document.getElementById('copyPolkadotBtn').addEventListener('click', function () { handleAction('polkadot', 'copy', this); });
+
+        // ─── Memory hygiene ───────────────────────────────────────────
+        // Clear sensitive data from memory and DOM on page unload
+        window.addEventListener('beforeunload', () => {
+            document.getElementById('mnemonic').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('confirmPassword').value = '';
+            if (currentSnap) {
+                if (currentSnap.seedBytes) currentSnap.seedBytes.fill(0);
+                if (currentSnap.publicKey) currentSnap.publicKey.fill(0);
+                currentSnap = null;
+            }
+            realPkText = '';
+        });
+    </script>
+    <script>
+        // Fallback: if the ES module fails to load (e.g. CDN 404),
+        // show a helpful error instead of an infinite spinner.
+        window.addEventListener('load', () => {
+            if (!window.__importsLoaded) {
+                const el = document.getElementById('loadError');
+                if (el) {
+                    el.style.display = 'block';
+                    el.textContent = 'Failed to load cryptographic libraries. '
+                        + 'For offline use, ensure you have an internet connection for the first load to cache the libraries, or run: python3 -m http.server 8000 and open http://localhost:8000/index.html. '
+                        + 'Open the browser console (F12) for details.';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
