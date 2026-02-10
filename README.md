@@ -158,18 +158,27 @@ Loaded from vendored ESM bundles (offline) or jsDelivr CDN (online) — no build
 
 ### Automated (GitHub Actions)
 
-Executables are built automatically via GitHub Actions on pushes to `main`/`master` and on release events. The workflow builds for macOS, Linux, and Windows using PyInstaller.
+Executables are built automatically via GitHub Actions for macOS, Linux, and Windows using PyInstaller.
+
+- **Every push / PR** to `main` — builds and uploads artifacts (for CI validation)
+- **Version tags** (`v*`) — builds, creates a GitHub Release, and attaches all platform binaries
+
+To create a release:
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 Download pre-built binaries from:
-- **[Actions artifacts](../../actions)** — for every push/PR build
-- **[Releases](../../releases)** — for tagged releases
+- **[Releases](../../releases)** — tagged releases with all platform binaries attached
+- **[Actions artifacts](../../actions)** — CI build artifacts from every push/PR
 
 ### Manual Build
 
 ```sh
 pip install -r requirements.txt pyinstaller
 cd release
-python -m pyinstaller --onefile --name enjin-snap-exporter tools/enjin_snap_exporter.py
+python -m PyInstaller --onefile --name enjin-snap-exporter tools/enjin_snap_exporter.py
 # Output: release/dist/enjin-snap-exporter
 ```
 
