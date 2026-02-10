@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="Content-Security-Policy"
-            content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://esm.sh; style-src 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net https://esm.sh; worker-src blob:; frame-src blob:; base-uri 'none'; form-action 'none';">
+            content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net; worker-src blob:; frame-src blob:; base-uri 'none'; form-action 'none';">
         <script type="importmap">
         {
             "imports": {
@@ -13,8 +13,8 @@
                 "@polkadot/wasm-crypto": "./libs/@polkadot_wasm-crypto@7.4.1/index.js",
                 "@polkadot/wasm-bridge": "./libs/@polkadot_wasm-bridge@7.4.1/index.js",
                 "@polkadot/wasm-util": "./libs/@polkadot_wasm-util@7.4.1/index.js",
-                "@polkadot/networks": "./libs/npm/@polkadot/networks@13.4.4/+esm.js",
-                "@polkadot/x-bigint": "./libs/npm/@polkadot/x-bigint@13.4.4/+esm.js",
+                "@polkadot/networks": "./npm/@polkadot/networks@13.4.4/+esm.js",
+                "@polkadot/x-bigint": "./npm/@polkadot/x-bigint@13.4.4/+esm.js",
                 "@noble/hashes": "./libs/@noble_hashes_utils@1.7.1.js",
                 "@noble/curves": "./libs/@noble_curves_secp256k1.js",
                 "@scure/base": "./libs/@scure_base@1.2.4.js",
@@ -457,15 +457,15 @@
         }
 
         try {
-            const bip32Module = await tryImport('./libs/@scure_bip32@1.6.2.js', 'https://cdn.jsdelivr.net/npm/@scure/bip32@1.6.2/+esm');
-            const bip39Module = await tryImport('./libs/@scure_bip39@1.5.4.js', 'https://cdn.jsdelivr.net/npm/@scure/bip39@1.5.4/+esm');
+            const bip32Module = await tryImport('@scure/bip32', 'https://cdn.jsdelivr.net/npm/@scure/bip32@1.6.2/+esm');
+            const bip39Module = await tryImport('@scure/bip39', 'https://cdn.jsdelivr.net/npm/@scure/bip39@1.5.4/+esm');
             const bip39WordlistModule = await tryImport('./libs/@scure_bip39_wordlist_english.js', 'https://cdn.jsdelivr.net/npm/@scure/bip39@1.5.4/wordlists/english/+esm');
-            const baseModule = await tryImport('./libs/@scure_base@1.2.4.js', 'https://cdn.jsdelivr.net/npm/@scure/base@1.2.4/+esm');
-            const secp256k1Module = await tryImport('./libs/@noble_curves_secp256k1.js', 'https://cdn.jsdelivr.net/npm/@noble/curves@1.8.1/secp256k1/+esm');
-            const sha3Module = await tryImport('./libs/@noble_hashes_sha3.js', 'https://cdn.jsdelivr.net/npm/@noble/hashes@1.7.1/sha3/+esm');
+            const baseModule = await tryImport('@scure/base', 'https://cdn.jsdelivr.net/npm/@scure/base@1.2.4/+esm');
+            const secp256k1Module = await tryImport('@noble/curves', 'https://cdn.jsdelivr.net/npm/@noble/curves@1.8.1/secp256k1/+esm');
+            const sha3Module = await tryImport('@noble/hashes', 'https://cdn.jsdelivr.net/npm/@noble/hashes@1.7.1/sha3/+esm');
             const blake2bModule = await tryImport('./libs/@noble_hashes_blake2b.js', 'https://cdn.jsdelivr.net/npm/@noble/hashes@1.7.1/blake2b/+esm');
             const scryptModule = await tryImport('./libs/@noble_hashes_scrypt.js', 'https://cdn.jsdelivr.net/npm/@noble/hashes@1.7.1/scrypt/+esm');
-            const naclModule = await tryImport('./libs/tweetnacl@1.0.3.js', 'https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/+esm');
+            const naclModule = await tryImport('tweetnacl', 'https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/+esm');
 
             HDKey = bip32Module.HDKey;
             mnemonicToSeedSync = bip39Module.mnemonicToSeedSync;
@@ -491,8 +491,6 @@
         let sr25519Available = false;
         let polkadotCrypto   = null;
 
-        // sr25519 via Polkadot UMD bundle (works offline, no ESM resolution needed)
-        // The bundle is loaded via script tag and exposes window.polkadotUtilCrypto
         if (typeof window.polkadotUtilCrypto !== 'undefined') {
             polkadotCrypto = window.polkadotUtilCrypto;
             try {
@@ -506,9 +504,8 @@
                 console.warn('sr25519 WASM init failed:', e);
             }
         } else {
-            // Fallback: try CDN if local bundle not available
             try {
-                polkadotCrypto = await import('https://esm.sh/@polkadot/util-crypto@13.4.4');
+                polkadotCrypto = await import('https://cdn.jsdelivr.net/npm/@polkadot/util-crypto@13.4.4/+esm');
                 if (polkadotCrypto && typeof polkadotCrypto.cryptoWaitReady === 'function') {
                     await polkadotCrypto.cryptoWaitReady();
                     sr25519Available = true;
@@ -518,7 +515,6 @@
             }
         }
 
-        // ─── Helpers ──────────────────────────────────────────────────
         const SS58_FORMAT = 1110;       // Enjin Matrixchain
         const SS58_RELAY_FORMAT = 2135;  // Enjin Relaychain
 
@@ -540,7 +536,6 @@
             return buf;
         }
 
-        /** SS58 encode a 32-byte public key with a network prefix ≥ 64 (2-byte prefix). */
         function ss58Encode(publicKey, prefix) {
             const byte1 = ((prefix & 0xfc) >> 2) | 0x40;
             const byte2 = (prefix >> 8) | ((prefix & 0x03) << 6);
@@ -555,7 +550,6 @@
             return base58.encode(concatBytes(payload, checksum));
         }
 
-        /** EIP-55 mixed-case checksum address. */
         function toChecksumAddress(address) {
             const addr = address.toLowerCase().replace('0x', '');
             const hashHex = bytesToHex(keccak_256(new TextEncoder().encode(addr)));
@@ -566,12 +560,10 @@
             return result;
         }
 
-        // ─── Derivation functions ─────────────────────────────────────
-
         function deriveEthereum(seed) {
             const root  = HDKey.fromMasterSeed(seed);
             const child = root.derive("m/44'/60'/0'/0/0");
-            const pub   = secp256k1.getPublicKey(child.privateKey, false).slice(1); // uncompressed, no 04 prefix
+            const pub   = secp256k1.getPublicKey(child.privateKey, false).slice(1);
             const hash  = keccak_256(pub);
             const addr  = '0x' + bytesToHex(hash.slice(-20));
             return toChecksumAddress(addr);
@@ -588,16 +580,13 @@
         }
 
         function deriveEnjinSnap(seed) {
-            // SLIP-10 secp256k1 at m/44'/1155'
             const root  = HDKey.fromMasterSeed(seed);
             const child = root.derive("m/44'/1155'");
             const privKeyHex = '0x' + bytesToHex(child.privateKey);
 
-            // .slice(0, 32) then UTF-8 encode — replicates the snap's account.ts
             const seedStr   = privKeyHex.slice(0, 32);
             const seedBytes = new TextEncoder().encode(seedStr);
 
-            // ed25519 keypair from seed
             const kp = nacl.sign.keyPair.fromSeed(seedBytes);
 
             return {
@@ -608,8 +597,6 @@
             };
         }
 
-        // ─── Keystore builder ─────────────────────────────────────────
-
         async function buildKeystore(publicKey, seedBytes, password) {
             const pkcs8Header  = new Uint8Array([
                 0x30, 0x53, 0x02, 0x01, 0x01, 0x30, 0x05, 0x06,
@@ -618,32 +605,22 @@
             const pkcs8Divider = new Uint8Array([0xa1, 0x23, 0x03, 0x21, 0x00]);
             const plaintext    = concatBytes(pkcs8Header, seedBytes, pkcs8Divider, publicKey);
 
-            // scrypt parameters (match Python/Polkadot.js usage — do not change)
             const N = 1 << 15, p = 1, r = 8, dkLen = 32;
             const salt  = nacl.randomBytes(32);
             const nonce = nacl.randomBytes(24);
 
             const passwordBytes = new TextEncoder().encode(password);
 
-            // Try available scrypt implementations in order of preference:
-            // 1) noble's scryptAsync (bundled above)
-            // 2) polkadot util-crypto implementation (WASM) if present
-            // This mirrors the Python script's approach of preferring a
-            // standard scrypt implementation so the derived key matches
-            // what Polkadot.js expects.
             let key;
             if (typeof scryptAsync === 'function') {
                 key = await scryptAsync(passwordBytes, salt, { N, r, p, dkLen });
             } else if (polkadotCrypto && typeof polkadotCrypto.scrypt === 'function') {
-                // polkadot util-crypto's scrypt API may accept similar args;
-                // normalize to Uint8Array output
                 const out = await polkadotCrypto.scrypt(passwordBytes, salt, { N, r, p, dkLen });
                 key = new Uint8Array(out);
             } else {
                 throw new Error('No scrypt implementation available in the browser. Ensure the page was loaded with the vendor libs.');
             }
 
-            // Ensure key is Uint8Array of length 32
             if (!(key instanceof Uint8Array)) key = new Uint8Array(key);
 
             const encrypted = nacl.secretbox(plaintext, nonce, key);
@@ -665,18 +642,14 @@
             };
         }
 
-        // ─── Ethereum v3 Web3 keystore builder (scrypt + aes-128-ctr) ──
         async function buildWeb3Keystore(seedBytes, password) {
-            // private key hex (no 0x prefix for storage)
             const privHex = bytesToHex(seedBytes);
             const privBytes = seedBytes;
 
-            // derive address from private key using secp256k1
             const pub = secp256k1.getPublicKey(privBytes, false).slice(1);
             const addrHex = '0x' + bytesToHex(keccak_256(pub).slice(-20));
             const address = toChecksumAddress(addrHex);
 
-            // scrypt params (common Ethereum keystore defaults)
             const N = 1 << 18; // 262144
             const r = 8;
             const p = 1;
@@ -689,20 +662,13 @@
             const cipherKey = derived.slice(0, 16);
             const macKey = derived.slice(16, 32);
 
-            // iv for AES-CTR (16 bytes)
             const iv = nacl.randomBytes(16);
 
-            // encrypt using WebCrypto AES-CTR
             const cryptoKey = await crypto.subtle.importKey('raw', cipherKey, { name: 'AES-CTR' }, false, ['encrypt']);
             const ctBuf = await crypto.subtle.encrypt({ name: 'AES-CTR', counter: iv, length: 128 }, cryptoKey, privBytes);
             const ciphertext = new Uint8Array(ctBuf);
 
-            // mac = keccak256(macKey || ciphertext)
             const macBytes = keccak_256(concatBytes(macKey, ciphertext));
-
-            // build kdf and crypto objects per Web3 keystore v3
-            const kdfparams = { dklen: dkLen, salt: btoa(String.fromCharCode(...salt)), n: N, r: r, p: p };
-            const cipherparams = { iv: btoa(String.fromCharCode(...iv)) };
 
             function toHex(arr) { return bytesToHex(arr); }
 
@@ -729,25 +695,18 @@
             return keystore;
         }
 
-        // ─── Clipboard helper ─────────────────────────────────────────
-
         async function copyText(text) {
             try { await navigator.clipboard.writeText(text); }
             catch { /* fallback — ignored in offline contexts */ }
         }
 
-        // ─── State ────────────────────────────────────────────────────
-        let currentSnap = null;   // { address, publicKey, seedBytes }
+        let currentSnap = null;
         let pkVisible   = false;
         let realPkText  = '';
-
-        // ─── UI wiring ───────────────────────────────────────────────
 
         document.getElementById('loading').style.display = 'none';
         document.getElementById('app').style.display     = 'block';
 
-        // If we reached here, all critical imports loaded successfully.
-        // The global error handler below covers CDN failures.
         window.__importsLoaded = true;
 
         document.getElementById('deriveBtn').addEventListener('click', () => {
@@ -761,14 +720,12 @@
 
             const seed = mnemonicToSeedSync(mnemonic);
 
-            // Ethereum
             try {
                 document.getElementById('ethAddress').textContent = deriveEthereum(seed);
             } catch (e) {
                 document.getElementById('ethAddress').textContent = 'Error: ' + e.message;
             }
 
-            // sr25519
             try {
                 const sr = deriveSr25519(mnemonic);
                 if (sr) {
@@ -785,7 +742,6 @@
                 document.getElementById('sr25519RelayAddress').textContent = 'Error: ' + e.message;
             }
 
-            // Enjin Snap ed25519
             try {
                 currentSnap = deriveEnjinSnap(seed);
                 document.getElementById('snapAddress').textContent = currentSnap.address;
@@ -804,7 +760,6 @@
             document.getElementById('keystoreSection').style.display = 'block';
         });
 
-        // Copy buttons
         document.querySelectorAll('[data-copy]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id   = btn.dataset.copy;
@@ -817,15 +772,12 @@
             });
         });
 
-        // Toggle private key visibility
         document.getElementById('togglePk').addEventListener('click', () => {
             pkVisible = !pkVisible;
             document.getElementById('privateKey').textContent =
                 pkVisible ? realPkText : '••••••••••••••••';
         });
 
-        // Export keystore
-        // Helpers for download/copy actions for each keystore format
         async function produceKeystore(format, password) {
             if (format === 'web3') {
                 return await buildWeb3Keystore(currentSnap.seedBytes, password);
@@ -863,7 +815,7 @@
                     const url  = URL.createObjectURL(blob);
                     const a    = document.createElement('a');
                     const namePrefix = format === 'web3' ? 'enjin-snap-keystore-web3' : 'enjin-snap-keystore';
-                    const address = keystore.address || (currentSnap.address || 'unknown');
+                    const address = format === 'web3' ? currentSnap.address : keystore.address;
                     const ts = Math.floor(Date.now() / 1000);
                     a.href = url;
                     a.download = `${namePrefix}-${address.slice(0,8)}-${ts}.json`;
@@ -885,14 +837,11 @@
             }
         }
 
-        // Wire buttons
         document.getElementById('downloadWeb3Btn').addEventListener('click', function () { handleAction('web3', 'download', this); });
         document.getElementById('copyWeb3Btn').addEventListener('click', function () { handleAction('web3', 'copy', this); });
         document.getElementById('downloadPolkadotBtn').addEventListener('click', function () { handleAction('polkadot', 'download', this); });
         document.getElementById('copyPolkadotBtn').addEventListener('click', function () { handleAction('polkadot', 'copy', this); });
 
-        // ─── Memory hygiene ───────────────────────────────────────────
-        // Clear sensitive data from memory and DOM on page unload
         window.addEventListener('beforeunload', () => {
             document.getElementById('mnemonic').value = '';
             document.getElementById('password').value = '';
@@ -906,8 +855,6 @@
         });
     </script>
     <script>
-        // Fallback: if the ES module fails to load (e.g. CDN 404),
-        // show a helpful error instead of an infinite spinner.
         window.addEventListener('load', () => {
             if (!window.__importsLoaded) {
                 const el = document.getElementById('loadError');
