@@ -12,22 +12,37 @@ This tool handles **mnemonics and private keys**. For maximum security:
 
 ## Features
 
-- **Three address derivations** from one BIP-39 mnemonic:
+- **Five address derivations** from one BIP-39 mnemonic:
   - Ethereum (BIP-44 `m/44'/60'/0'/0/0`)
-  - Enjin Matrixchain sr25519 (blank derivation path, SS58 format 1110)
-  - Enjin Snap ed25519 (non-standard SLIP-10 derivation matching the snap's `account.ts`)
+  - Enjin Matrixchain sr25519 (blank derivation path, SS58 prefix 1110)
+  - Enjin Relaychain sr25519 (blank derivation path, SS58 prefix 2135)
+  - Enjin Snap ed25519 — Matrixchain (non-standard SLIP-10 derivation, SS58 prefix 1110)
+  - Enjin Snap ed25519 — Relaychain (non-standard SLIP-10 derivation, SS58 prefix 2135)
 - **Private key export** — hex seed for direct wallet import
 - **Keystore export** — encrypted JSON in Web3 (Ethereum v3) or Polkadot-compatible formats for importing into Enjin Wallet or other wallets
 - **Two interfaces** — Python CLI script and standalone browser HTML
 
 ## Quick Start
 
+### Standalone Executable (Recommended)
+
+Download pre-built standalone executables for your platform from the [GitHub releases](../../releases) page (no Python installation required). Supports macOS, Linux, and Windows.
+
+```sh
+# Run the executable (it will prompt for .env setup)
+./enjin-snap-exporter        # macOS / Linux
+.\enjin-snap-exporter.exe    # Windows
+```
+
+Keystores and private keys will be saved in the current working directory.
+
 ### Python Script
+
+For users who have Python installed and prefer running the CLI directly (alternative to the standalone executable):
 
 ```sh
 # Install dependencies
 pip install -r requirements.txt
-# or pip3 install -r requirements.txt
 
 # Create .env with your recovery phrase
 cp .env.example .env
@@ -35,34 +50,23 @@ cp .env.example .env
 # Example: MNEMONIC="abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
 # Run
-python generate_addresses.py
-# or python3 generate_addresses.py
+python release/tools/enjin_snap_exporter.py
 ```
 
-> **Note:** The script checks for required dependencies at startup and offers to install them automatically if missing.
+The script will automatically detect and offer to install missing dependencies. Keystores and private keys will be saved in the current working directory.
 
 ### Browser (HTML)
 
 #### Online Use
-Open `index.html` in any modern browser with internet access. The page loads cryptographic libraries from CDN and runs entirely client-side.
-
-To serve via local server (recommended):
-```sh
-python3 scripts/serve_offline.py
-```
-Open `http://localhost:8000/index.html` in your browser.
+Open `release/web/index.html` in any modern browser with internet access. The page loads cryptographic libraries from CDN (jsDelivr) and runs entirely client-side.
 
 #### Offline Use
-For guaranteed offline operation, first run the vendoring script on a machine with internet access:
+For guaranteed offline operation, run the setup script:
 ```sh
-./scripts/vendor_and_serve_polkadot_libs.sh
+python3 release/tools/browser_setup.py
 ```
 
-This downloads and vendors the required libraries into `./libs/`. Then run the server:
-```sh
-python3 scripts/serve_offline.py
-```
-Open `http://localhost:8000/index.html` in your browser (do not use `file://`).
+Select "offline" mode. It will download ESM bundles from jsDelivr CDN into `release/web/libs/` and `release/web/npm/`, then start a local HTTP server. Open `http://localhost:8000/index.html` in your browser.
 
 ## How It Works
 
@@ -78,7 +82,7 @@ BIP-39 mnemonic
     → .slice(0, 32) → first 32 characters
     → UTF-8 encode → 32 bytes
     → ed25519 keypair from seed
-    → SS58 encode with prefix 1110
+    → SS58 encode with prefix 1110 (Matrixchain) or 2135 (Relaychain)
 ```
 
 This replicates the logic from the snap's `account.ts` — the `.slice(0, 32)` on the hex string (not the bytes) is intentional and critical for compatibility.
@@ -111,13 +115,14 @@ The tool exports encrypted JSON keystores in two formats:
 |---------|---------|
 | `python-dotenv` | Load mnemonic from `.env` file |
 | `substrate-interface` | sr25519/ed25519 keypairs, SS58 encoding |
-| `eth-account` | Ethereum BIP-44 derivation |
+| `eth-account` | Ethereum BIP-44 derivation, Web3 v3 keystore |
 | `bip-utils` | BIP-39 seed generation, SLIP-10 secp256k1 |
 | `PyNaCl` | xsalsa20-poly1305 authenticated encryption |
+| `pycryptodome` | scrypt KDF for keystore encryption |
 
 ### Browser (index.html)
 
-All loaded from CDN via ES modules — no build step required:
+Loaded from vendored ESM bundles (offline) or jsDelivr CDN (online) — no build step required:
 
 | Package | Purpose |
 |---------|---------|
@@ -132,14 +137,46 @@ All loaded from CDN via ES modules — no build step required:
 ## Project Structure
 
 ```
-├── generate_addresses.py  # Python CLI — full offline support
-├── index.html             # Browser version — single static file
-├── requirements.txt       # Python dependencies
-├── .env.example           # Template for mnemonic configuration
-├── .gitignore             # Ignores .env, keystores, logs
-├── .github/               # GitHub-specific configuration and templates
-├── libs/                  # Vendored JS/WASM libraries for offline HTML use
-├── npm/                   # Temporary npm package storage for vendoring
-├── scripts/               # Vendoring and utility scripts
-└── README.md
+├── .github/
+│   └── workflows/
+│       └── build.yml          # GitHub Actions CI — builds PyInstaller executables
+├── release/
+│   ├── tools/
+│   │   ├── enjin_snap_exporter.py  # Main CLI script (built into executable)
+│   │   └── browser_setup.py        # Browser setup, vendoring, and HTTP server
+│   └── web/
+│       ├── index.html         # Browser UI (single-file, self-contained)
+│       ├── libs/              # Vendored ESM bundles (loaded via importmap)
+│       └── npm/               # Sub-module ESM bundles (for absolute /npm/ imports)
+├── .env.example               # Template for mnemonic storage
+├── requirements.txt           # Python dependencies
+├── LICENSE                    # MIT license
+└── README.md                  # This file
 ```
+
+## Building
+
+### Automated (GitHub Actions)
+
+Executables are built automatically via GitHub Actions on pushes to `main`/`master` and on release events. The workflow builds for macOS, Linux, and Windows using PyInstaller.
+
+Download pre-built binaries from:
+- **[Actions artifacts](../../actions)** — for every push/PR build
+- **[Releases](../../releases)** — for tagged releases
+
+### Manual Build
+
+```sh
+pip install -r requirements.txt pyinstaller
+cd release
+python -m pyinstaller --onefile --name enjin-snap-exporter tools/enjin_snap_exporter.py
+# Output: release/dist/enjin-snap-exporter
+```
+
+## Security
+
+- **Content Security Policy (CSP)**: The HTML page uses a strict CSP that only allows `self` and `cdn.jsdelivr.net` as script sources
+- **No network calls**: The Python CLI makes zero network requests — all derivation is offline
+- **Memory cleanup**: The browser clears mnemonics, passwords, and key material from DOM and memory on page unload
+- **Input protection**: Mnemonic textarea disables autocomplete, autocorrect, and spellcheck
+- **Mnemonic source**: Always loaded from `.env` file, never accepted as a CLI argument

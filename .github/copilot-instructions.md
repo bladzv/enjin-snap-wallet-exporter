@@ -6,25 +6,29 @@ Offline CLI tool to export Enjin Snap (MetaMask Snap) wallet keypairs as a hex p
 
 ## Architecture
 
-Two interfaces — a Python CLI script ([generate_addresses.py](../generate_addresses.py)) and a static browser page ([index.html](../index.html)) — performing three derivations from one BIP-39 mnemonic:
+Two interfaces — a Python CLI script ([enjin_snap_exporter.py](../release/tools/enjin_snap_exporter.py)) and a static browser page ([index.html](../release/web/index.html)) — performing five derivations from one BIP-39 mnemonic:
 
 1. **Ethereum** — standard BIP-44 (`m/44'/60'/0'/0/0`) via `eth-account`
-2. **Matrixchain sr25519** — blank derivation path, SS58 format `1110`, via `substrate-interface`
-3. **Enjin Snap ed25519** — non-standard derivation replicating the snap's `account.ts`:
+2. **Matrixchain sr25519** — blank derivation path, SS58 prefix `1110`, via `substrate-interface`
+3. **Relaychain sr25519** — blank derivation path, SS58 prefix `2135`, via `substrate-interface`
+4. **Enjin Snap ed25519 — Matrixchain** — non-standard derivation replicating the snap's `account.ts`, SS58 prefix `1110`
+5. **Enjin Snap ed25519 — Relaychain** — same derivation, SS58 prefix `2135`
+
+The snap derivation:
    BIP-39 seed → SLIP-10 secp256k1 at `m/44'/1155'` → hex private key → take first 32 chars of `0x`-prefixed hex → UTF-8 encode → use as ed25519 seed
 
 The snap derivation is the core value of this project — it cannot be changed without breaking compatibility with existing Enjin Snap wallets.
 
 ## Key Dependencies
 
-**Python:** `python-dotenv`, `substrate-interface` (Keypair, KeypairType), `eth-account`, `bip-utils` (Bip39SeedGenerator, Bip32Slip10Secp256k1), `PyNaCl` (SecretBox). Scrypt KDF uses `hashlib.scrypt` (stdlib).
+**Python:** `python-dotenv`, `substrate-interface` (Keypair, KeypairType), `eth-account`, `bip-utils` (Bip39SeedGenerator, Bip32Slip10Secp256k1), `PyNaCl` (SecretBox), `pycryptodome` (scrypt KDF). Scrypt KDF uses `hashlib.scrypt` (stdlib) with `pycryptodome` fallback.
 
-**Browser (index.html):** `@scure/bip39`, `@scure/bip32`, `@noble/curves`, `@noble/hashes`, `tweetnacl`, `@polkadot/util-crypto` (sr25519 via WASM — optional, graceful fallback). All loaded from CDN via ES modules.
+**Browser (release/web/index.html):** `@scure/bip39`, `@scure/bip32`, `@noble/curves`, `@noble/hashes`, `tweetnacl`, `@polkadot/util-crypto` (sr25519 via WASM — optional, graceful fallback). Loaded from vendored ESM bundles or jsDelivr CDN.
 
 ## Critical Conventions
 
 - **Mnemonic source**: always loaded from `MNEMONIC` in a `.env` file via `python-dotenv`; never hardcoded or accepted as a CLI argument
-- **SS58 format**: always `1110` for Enjin Matrixchain addresses
+- **SS58 prefixes**: `1110` for Enjin Matrixchain, `2135` for Enjin Relaychain
 - **Keystore encryption**: scrypt (N=32768, p=1, r=8) + xsalsa20-poly1305, matching Polkadot.js defaults — do not change these parameters
 - **PKCS8 ed25519 encoding**: uses a fixed header (`0x30 0x53 0x02 0x01 ...`) and divider — byte layout must match Polkadot.js for wallet import compatibility
 - **Keystore JSON schema**: fields `encoded`, `encoding` (with `content`, `type`, `version: "3"`), `address`, `meta` — must stay compatible with Enjin Wallet's import parser
@@ -40,14 +44,12 @@ The snap derivation is the core value of this project — it cannot be changed w
 ```sh
 # Python
 pip install -r requirements.txt
-# or pip3 install -r requirements.txt
 cp .env.example .env   # edit with your actual mnemonic
-python generate_addresses.py
-# or python3 generate_addresses.py
+python release/tools/enjin_snap_exporter.py
 
 # Note: The Python script automatically detects and offers to install missing dependencies
-# Browser — just open index.html (needs internet on first load for CDN modules)
-# For offline operation after initial load, browser cache serves the modules
+# Browser — open release/web/index.html (needs internet for CDN modules)
+# For offline operation, run: python3 release/tools/browser_setup.py
 ```
 
 ## Core Development Principles
