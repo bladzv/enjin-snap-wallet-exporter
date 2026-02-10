@@ -1,6 +1,6 @@
 # Enjin Snap Wallet Exporter
 
-Export [Enjin Snap](https://snaps.metamask.io/) (MetaMask Snap) wallet keypairs as a hex private key or encrypted JSON keystore for importing into the **Enjin Wallet** or compatible wallets.
+Export [Enjin Snap](https://snaps.metamask.io/snap/npm/enjin-io/snap/) (MetaMask Snap) wallet keypairs as a hex private key or encrypted JSON keystore for importing into the **Enjin Wallet** or compatible wallets.
 
 ## ⚠️ Security Warning
 
