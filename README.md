@@ -178,7 +178,13 @@ Download pre-built binaries from:
 ```sh
 pip install -r requirements.txt pyinstaller
 cd release
-python -m PyInstaller --onefile --name enjin-snap-exporter tools/enjin_snap_exporter.py
+python -m PyInstaller --onefile --name enjin-snap-exporter \
+  --hidden-import=coincurve._cffi_backend \
+  --hidden-import=_cffi_backend \
+  --hidden-import=coincurve \
+  --collect-all=bip_utils \
+  --collect-all=sr25519 \
+  tools/enjin_snap_exporter.py
 # Output: release/dist/enjin-snap-exporter
 ```
 
