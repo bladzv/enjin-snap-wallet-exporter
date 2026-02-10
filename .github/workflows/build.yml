@@ -42,7 +42,7 @@ jobs:
     - name: Build executable
       run: |
         cd release
-        python -m pyinstaller --onefile --name enjin-snap-exporter tools/enjin_snap_exporter.py
+        python -m PyInstaller --onefile --name enjin-snap-exporter tools/enjin_snap_exporter.py
 
     - name: Rename executable for release
       run: |
