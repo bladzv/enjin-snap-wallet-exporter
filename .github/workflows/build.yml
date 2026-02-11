@@ -45,7 +45,14 @@ jobs:
     - name: Build executable
       run: |
         cd release
-        python -m PyInstaller --onefile --name enjin-snap-exporter --hidden-import=coincurve._cffi_backend --hidden-import=_cffi_backend --hidden-import=coincurve --collect-all=bip_utils --collect-all=sr25519e: Upload artifact
+        python -m PyInstaller --onefile --name enjin-snap-exporter --hidden-import=coincurve._cffi_backend --hidden-import=_cffi_backend --hidden-import=coincurve --collect-all=bip_utils --collect-all=sr25519 tools/enjin_snap_exporter.py
+
+    - name: Rename executable for release
+      shell: bash
+      run: |
+        cp release/dist/enjin-snap-exporter${{ matrix.ext }} release/dist/enjin-snap-exporter-${{ matrix.name }}${{ matrix.ext }}
+
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: enjin-snap-exporter-${{ matrix.name }}
