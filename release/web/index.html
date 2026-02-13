@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="Content-Security-Policy"
-            content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net; worker-src blob:; frame-src blob:; base-uri 'none'; form-action 'none';">
+            content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; img-src 'self'; manifest-src 'self'; connect-src 'self' https://cdn.jsdelivr.net; worker-src blob:; frame-src blob:; base-uri 'none'; form-action 'none';">
         <script type="importmap">
         {
             "imports": {
@@ -24,21 +24,81 @@
             }
         }
         </script>
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
+    <link rel="manifest" href="./site.webmanifest">
+    <meta name="theme-color" content="#0d1117">
     <title>Enjin Snap Wallet Exporter</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root { --topbar-height: 56px; --footer-height: 44px; }
+
+        /* Sticky topbar styles */
+        .topbar {
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1200;
+            background: linear-gradient(180deg, rgba(13,17,23,0.98), rgba(13,17,23,0.95));
+            border-bottom: 1px solid rgba(48,54,61,0.8);
+            backdrop-filter: blur(6px);
+        }
+        .topbar-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 1.25rem;
+            height: var(--topbar-height);
+        }
+        .topbar-left { display:flex; align-items:center; gap:12px; }
+        .topbar-actions { display:flex; align-items:center; gap:8px; }
+        /* Footer bar (full-width) */
+        .footerbar {
+            /* Fix to viewport bottom so it visually sticks to the bottom edge */
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1200;
+            background: linear-gradient(0deg, rgba(13,17,23,0.98), rgba(13,17,23,0.95));
+            border-top: 1px solid rgba(48,54,61,0.8);
+            backdrop-filter: blur(6px);
+        }
+        /* Reset the generic footer spacing when using the fixed footerbar
+           and keep the inner container compact so the bar sits flush. */
+        footer.footerbar { margin-top: 0; padding-top: 0; }
+        .footer-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem; /* reduced horizontal padding for slimmer bar */
+            height: var(--footer-height);
+        }
+        .footer-text { font-size: 0.8rem; color: #8b949e; text-align: center; width: 100%; }
+        .topbar-title { font-weight: 700; font-size: 1.4rem; color: #e6edf3; }
+        .topbar-subtitle { font-size: 0.9rem; color: #8b949e; }
+        .topbar-actions .btn-sm { background: transparent; border: 1px solid rgba(48,54,61,0.6); color: #58a6ff; padding: 0.35rem 0.65rem; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #0d1117;
             color: #e6edf3;
             min-height: 100vh;
-            padding: 1.5rem;
+            /* ensure we keep space at the bottom so content isn't hidden beneath the fixed footer */
+            padding: 0 1.5rem calc(1.5rem + var(--footer-height));
         }
 
         .container { max-width: 720px; margin: 0 auto; }
 
-        h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+        h1 { font-size: 1.6rem; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.75rem; }
+        .site-logo { width: 28px; height: 28px; object-fit: cover; border-radius: 6px; }
         .subtitle { color: #8b949e; margin-bottom: 1.5rem; font-size: 0.95rem; }
 
         .warning {
@@ -52,13 +112,15 @@
         }
 
         .status {
-            background: #1a7f37;
-            border: 1px solid #238636;
+            background: rgba(34,197,94,0.10); /* transparent green */
+            border: 1px solid #16a34a; /* solid green */
             border-radius: 8px;
             padding: 0.9rem 1rem;
             margin-bottom: 1.5rem;
+            margin-top: 1rem;
             font-size: 0.9rem;
             line-height: 1.5;
+            color: #dff7ea;
         }
 
         .card {
@@ -81,6 +143,20 @@
             font-size: 0.85rem;
             resize: vertical;
         }
+        .input-hint {
+            font-size: 0.82rem;
+            color: #8b949e;
+            margin-top: 0.45rem;
+            margin-bottom: 0.6rem;
+        }
+        .required { color: #ff6b6b; font-weight: 600; margin-left: 0.35rem; }
+        .required-note { font-size: 0.82rem; color: #ff4d4f; margin-top: 0.35rem; margin-bottom: 0.6rem; }
+        .field-note { font-size: 0.82rem; color: #ff4d4f; margin-top: 0.35rem; margin-bottom: 0.6rem; }
+        .password-row { display: flex; gap: 0.5rem; align-items: center; }
+        .password-input-wrapper { position: relative; width: 50%; }
+        .password-input-wrapper input { width: 100%; padding-right: 2.75rem; }
+        .password-input-wrapper .input-icon { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; padding: 0.25rem; height: 36px; width: 36px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: #c9d1d9; }
+        .password-input-wrapper .input-icon svg { width: 18px; height: 18px; display: block; }
         textarea:focus, input:focus { outline: none; border-color: #58a6ff; }
 
         button {
@@ -94,7 +170,16 @@
             margin-top: 0.75rem;
         }
         button:hover { background: #2ea043; }
-        button:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+                button:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+                /* Ensure disabled buttons do not change on hover */
+                button:disabled:hover,
+                button[disabled]:hover,
+                .btn-download:disabled:hover,
+                .btn-sm:disabled:hover {
+                    background: #21262d;
+                    color: #484f58;
+                    cursor: not-allowed;
+                }
 
         .btn-sm {
             background: transparent;
@@ -119,6 +204,16 @@
             height: 36px;
             margin-top: 0;
         }
+
+        /* Style the primary Derive Addresses button: spacing + blue (non-green) variant */
+        .card #deriveBtn {
+            margin-top: 0.9rem;
+            background: #2563eb;
+            color: #ffffff;
+            border: none;
+        }
+        .card #deriveBtn:hover { background: #1f53d2; }
+        .card #deriveBtn:focus-visible { outline: 2px solid #58a6ff; outline-offset: 2px; }
 
         .btn-download {
             min-width: 220px;
@@ -163,6 +258,8 @@
             border: 1px solid #30363d;
             border-radius: 6px;
             padding: 0.45rem 0.6rem;
+            position: relative; /* allow absolute icons inside */
+            padding-right: 4.6rem; /* room for inline action icons */
         }
         .result-value code {
             flex: 1;
@@ -171,6 +268,30 @@
             word-break: break-all;
             color: #79c0ff;
         }
+        .result-value code { padding-right: 0.5rem; }
+
+        /* Inline icon buttons placed inside result fields */
+        .result-value .field-icon {
+            position: absolute;
+            right: 0.5rem; /* default: right-most */
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            padding: 0.25rem;
+            height: 36px;
+            width: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #c9d1d9;
+            border-radius: 6px;
+        }
+        .result-value .field-icon svg { width: 18px; height: 18px; display: block; }
+        /* Explicit positions: copy icon at right-most, toggle (eye) sits to its left */
+        .result-value .field-icon.copy-icon { right: 0.5rem; }
+        .result-value .field-icon.toggle-icon { right: 2rem; }
         .sensitive code { color: #f0883e; }
 
         .input-group { margin-bottom: 0.75rem; }
@@ -215,6 +336,159 @@
             margin-top: 2rem;
             padding-top: 1rem;
             border-top: 1px solid #21262d;
+        }
+
+        /* ─── Modal System ────────────────────────────────── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(1, 4, 9, 0.75);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 250ms ease, visibility 250ms ease;
+            padding: 1rem;
+        }
+        .modal-overlay.is-visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-dialog {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 440px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 16px 48px rgba(1, 4, 9, 0.6);
+            transform: scale(0.95) translateY(8px);
+            transition: transform 250ms ease;
+        }
+        .modal-overlay.is-visible .modal-dialog {
+            transform: scale(1) translateY(0);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px 24px 0;
+        }
+                .modal-body p {
+                    text-align: justify;
+                    text-justify: inter-word;
+                    margin-bottom: 0.75rem;
+                    text-align: justify;
+                    margin-bottom: 0.75rem;
+                }
+                .modal-body p:last-child {
+                    margin-bottom: 0;
+                }
+                    padding-bottom: 0px;
+                    padding-left: 24px;
+                    font-size: 0.9rem;
+                    line-height: 1.6;
+                    color: rgb(139, 148, 158);
+                }
+                /* Make modal paragraphs justified and add breathing room */
+                .modal-body p {
+                    text-align: justify;
+                    text-justify: inter-word;
+                    margin-bottom: 0.75rem;
+                }
+        .modal-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 1.25rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .modal-icon.info    { background: rgba(88, 166, 255, 0.2); color: #58a6ff; }
+        .modal-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #e6edf3;
+        }
+        .modal-body {
+            padding: 16px 24px 0 24px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #8b949e;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 0 24px 20px;
+        }
+        .modal-btn {
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background 150ms ease;
+            min-height: 36px;
+        }
+        .modal-btn-primary {
+            background: #238636;
+            color: #fff;
+        }
+        .modal-btn-primary:hover { background: #2ea043; }
+        .modal-btn-primary:focus-visible {
+            outline: 2px solid #58a6ff;
+            outline-offset: 2px;
+        }
+        .modal-btn-secondary {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+        }
+        .modal-btn-secondary:hover { background: #30363d; }
+        .modal-btn-danger {
+            background: #da3633;
+            color: #fff;
+        }
+        .modal-btn-danger:hover { background: #f85149; }
+        .modal-close {
+            position: static;
+            margin-left: auto;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: #8b949e;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 150ms ease, color 150ms ease;
+            line-height: 1;
+            padding: 0;
+        }
+        .modal-close:hover { background: #21262d; color: #e6edf3; }
+        .modal-close:focus-visible {
+            outline: 2px solid #58a6ff;
+            outline-offset: 2px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .modal-overlay,
+            .modal-dialog {
+                transition: none;
+            }
         }
 
         /* Mobile responsiveness */
@@ -290,6 +564,21 @@
     </style>
 </head>
 <body>
+    <!-- Sticky top navigation bar -->
+    <header class="topbar" role="banner">
+        <div class="topbar-inner">
+            <div class="topbar-left">
+                <img src="./favicon-32x32.png" alt="Enjin" class="site-logo">
+                <div class="topbar-text">
+                    <div class="topbar-title">Enjin Snap Wallet Exporter</div>
+                </div>
+            </div>
+            <div class="topbar-actions">
+                <button id="aboutBtn" class="btn-sm" aria-haspopup="dialog" aria-controls="modalOverlay">About</button>
+            </div>
+        </div>
+    </header>
+
     <div class="container">
         <div id="loading">
             <div class="spinner"></div>
@@ -298,8 +587,7 @@
         </div>
 
         <div id="app" style="display:none">
-            <h1>🔐 Enjin Snap Wallet Exporter</h1>
-            <p class="subtitle">Derive addresses and export keys from your recovery phrase</p>
+            <!-- Header moved to sticky topbar -->
 
             <div id="securityNotice" class="warning">
                 ⚠️ <strong>Security Warning:</strong> For maximum security, disconnect from the
@@ -309,6 +597,7 @@
 
             <section class="card">
                 <h2>Recovery Phrase</h2>
+                <div class="input-hint">Please separate recovery phrase words with single spaces (no commas).</div>
                 <textarea id="mnemonic" rows="3"
                           placeholder="Enter your 12 or 24 word recovery phrase…"
                           autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -323,7 +612,9 @@
                     <label>Ethereum (m/44'/60'/0'/0/0)</label>
                     <div class="result-value">
                         <code id="ethAddress"></code>
-                        <button class="btn-sm" data-copy="ethAddress" title="Copy">📋</button>
+                        <button class="btn-sm field-icon copy-icon" data-copy="ethAddress" title="Copy" aria-label="Copy address">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 15V5a2 2 0 0 1 2-2h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
                     </div>
                 </div>
 
@@ -331,7 +622,9 @@
                     <label>Matrixchain sr25519 (blank derivation)</label>
                     <div class="result-value">
                         <code id="sr25519Address"></code>
-                        <button class="btn-sm" data-copy="sr25519Address" title="Copy">📋</button>
+                        <button class="btn-sm field-icon copy-icon" data-copy="sr25519Address" title="Copy" aria-label="Copy address">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 15V5a2 2 0 0 1 2-2h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
                     </div>
                 </div>
 
@@ -339,7 +632,9 @@
                     <label>Relaychain sr25519 (blank derivation)</label>
                     <div class="result-value">
                         <code id="sr25519RelayAddress"></code>
-                        <button class="btn-sm" data-copy="sr25519RelayAddress" title="Copy">📋</button>
+                        <button class="btn-sm field-icon copy-icon" data-copy="sr25519RelayAddress" title="Copy" aria-label="Copy address">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 15V5a2 2 0 0 1 2-2h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
                     </div>
                 </div>
 
@@ -347,7 +642,9 @@
                     <label>Enjin Snap ed25519 — Matrixchain (m/44'/1155' seed logic)</label>
                     <div class="result-value">
                         <code id="snapAddress"></code>
-                        <button class="btn-sm" data-copy="snapAddress" title="Copy">📋</button>
+                        <button class="btn-sm field-icon copy-icon" data-copy="snapAddress" title="Copy" aria-label="Copy address">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 15V5a2 2 0 0 1 2-2h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
                     </div>
                 </div>
 
@@ -355,7 +652,9 @@
                     <label>Enjin Snap ed25519 — Relaychain (m/44'/1155' seed logic)</label>
                     <div class="result-value">
                         <code id="snapRelayAddress"></code>
-                        <button class="btn-sm" data-copy="snapRelayAddress" title="Copy">📋</button>
+                        <button class="btn-sm field-icon copy-icon" data-copy="snapRelayAddress" title="Copy" aria-label="Copy address">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 15V5a2 2 0 0 1 2-2h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
                     </div>
                 </div>
 
@@ -363,17 +662,24 @@
                     <label>Public Key</label>
                     <div class="result-value">
                         <code id="publicKey"></code>
-                        <button class="btn-sm" data-copy="publicKey" title="Copy">📋</button>
+                        <button class="btn-sm field-icon copy-icon" data-copy="publicKey" title="Copy" aria-label="Copy public key">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 15V5a2 2 0 0 1 2-2h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
                     </div>
                 </div>
 
                 <div class="result-group">
-                    <label>Private Key (hex seed) — keep secret!</label>
+                    <label>Private Key (hex seed)</label>
                     <div class="result-value sensitive">
                         <code id="privateKey"></code>
-                        <button class="btn-sm" id="togglePk" title="Show / Hide">👁</button>
-                        <button class="btn-sm" data-copy="privateKey" title="Copy">📋</button>
+                        <button class="btn-sm field-icon toggle-icon" id="togglePk" aria-pressed="false" aria-label="Show private key" title="Show / Hide">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <button class="btn-sm field-icon copy-icon" data-copy="privateKey" title="Copy" aria-label="Copy private key">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 15V5a2 2 0 0 1 2-2h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
                     </div>
+                    <div class="field-note">Keep this a secret!</div>
                 </div>
             </section>
 
@@ -384,15 +690,17 @@
                 </p>
 
                 <div class="input-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter password for keystore"
-                           autocomplete="off">
+                    <label for="password">Password <span class="required" aria-hidden="true">*</span></label>
+                    <div class="password-row">
+                           <div class="password-input-wrapper">
+                               <input type="password" id="password" placeholder="Enter password for keystore"
+                                   autocomplete="off" required aria-required="true">
+                               <button type="button" id="togglePassword" class="input-icon" aria-pressed="false" aria-label="Show password" title="Show password"></button>
+                           </div>
+                    </div>
+                    <div class="required-note">Password is required to export keystores.</div>
                 </div>
-                <div class="input-group">
-                    <label for="confirmPassword">Confirm Password</label>
-                    <input type="password" id="confirmPassword" placeholder="Confirm password"
-                           autocomplete="off">
-                </div>
+                <!-- confirm password removed: single password used for keystore export -->
                 <div class="card" style="margin-bottom:0.75rem;">
                     <h3 style="font-size:1rem; margin-bottom:0.5rem;">Ethereum v3 (Web3)</h3>
                     <p style="color:#3fb950; font-size:0.8rem; margin-bottom:0.5rem;">✓ Recommended — supported by Enjin Wallet</p>
@@ -412,7 +720,7 @@
 
                 <div class="card">
                     <h3 style="font-size:1rem; margin-bottom:0.5rem;">Polkadot-style (scrypt + xsalsa20-poly1305)</h3>
-                    <p style="color:#f0883e; font-size:0.8rem; margin-bottom:0.5rem;">⚠ Not supported by Enjin Wallet</p>
+                    <p style="color:#ff4d4f; font-size:0.8rem; margin-bottom:0.5rem;">⚠ Not supported by Enjin Wallet</p>
                     <div style="display:flex; align-items: center; gap:0.5rem;">
                         <button id="downloadPolkadotBtn" class="btn-download">Download Polkadot Keystore</button>
                         <button class="btn-sm" id="copyPolkadotBtn">Copy</button>
@@ -426,10 +734,29 @@
                 <p id="keystoreStatus"></p>
             </section>
 
-            <footer>
-                Enjin Snap Wallet Exporter &middot; Runs 100% in your browser &middot;
-                <a href="https://github.com/bladzv/enjin-snap-wallet-exporter" style="color:#58a6ff;" target="_blank">GitHub</a>
-            </footer>
+        </div>
+    </div>
+
+    <footer class="footerbar" role="contentinfo">
+        <div class="footer-inner">
+            <div class="footer-text">Enjin Snap Wallet Exporter &middot; <a href="https://github.com/bladzv/enjin-snap-wallet-exporter/blob/main/LICENSE" style="color:#58a6ff;" target="_blank">MIT License</a> &middot; <a href="https://github.com/bladzv/enjin-snap-wallet-exporter" style="color:#58a6ff;" target="_blank">GitHub</a></div>
+        </div>
+    </footer>
+
+    <!-- Modal Container -->
+    <div id="modalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-dialog" style="position:relative;">
+            <div class="modal-header">
+                <div class="modal-icon" id="modalIcon"></div>
+                <h3 class="modal-title" id="modalTitle"></h3>
+                <button class="modal-close" id="modalCloseX" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <p>Derive addresses and export keys of Enjin Snap wallet address based on your recovery phrase.</p>
+                <p>This tool derives Ethereum (BIP-44) and Enjin Snap ed25519 addresses (Matrixchain and Relaychain), displays public keys, and can export encrypted keystores compatible with the Enjin Wallet.</p>
+                <p>Runs entirely in your browser — no data is transmitted to any server. For maximum security, run offline and close this page after use.</p>
+            </div>
+            <div class="modal-footer" id="modalFooter"></div>
         </div>
     </div>
 
@@ -444,6 +771,125 @@
     </script>
 
     <script type="module">
+        // ─── Modal utility ───────────────────────────────────────────────
+        // Replaces browser alert() / confirm() with an accessible, styled
+        // modal that follows UI/UX best practices (focus trap, Escape key,
+        // ARIA roles, animations, reduced-motion support).
+        const _modal = {
+            overlay: () => document.getElementById('modalOverlay'),
+            icon:    () => document.getElementById('modalIcon'),
+            title:   () => document.getElementById('modalTitle'),
+            body:    () => document.getElementById('modalBody'),
+            footer:  () => document.getElementById('modalFooter'),
+            closeX:  () => document.getElementById('modalCloseX'),
+            _trigger: null,
+            _resolve: null,
+        };
+
+        /**
+         * Show a modal dialog.
+         * @param {object} opts
+         * @param {'error'|'warning'|'success'|'info'} opts.type
+         * @param {string} opts.title
+         * @param {string} opts.message — supports HTML
+         * @param {string} [opts.confirmLabel='OK']
+         * @param {string} [opts.cancelLabel]       — if set, a secondary button appears
+         * @param {'primary'|'danger'} [opts.confirmStyle='primary']
+         * @returns {Promise<boolean>} true = confirmed, false = cancelled / dismissed
+         */
+        function showModal({ type = 'info', title, message, confirmLabel = 'OK', cancelLabel, confirmStyle = 'primary' } = {}) {
+            const icons = { error: '✕', warning: '⚠', success: '✓', info: 'ℹ' };
+
+            _modal.icon().className  = 'modal-icon ' + type;
+            _modal.icon().textContent = icons[type] || icons.info;
+            _modal.title().textContent = title;
+            _modal.body().innerHTML    = message;
+
+            // Build footer buttons
+            _modal.footer().innerHTML = '';
+            if (cancelLabel) {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'modal-btn modal-btn-secondary';
+                cancelBtn.textContent = cancelLabel;
+                cancelBtn.addEventListener('click', () => closeModal(false));
+                _modal.footer().appendChild(cancelBtn);
+            }
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = `modal-btn modal-btn-${confirmStyle}`;
+            confirmBtn.textContent = confirmLabel;
+            confirmBtn.addEventListener('click', () => closeModal(true));
+            _modal.footer().appendChild(confirmBtn);
+
+            // Remember trigger element for focus return
+            _modal._trigger = document.activeElement;
+
+            // Show overlay
+            const overlay = _modal.overlay();
+            overlay.classList.add('is-visible');
+
+            // Focus confirm button
+            requestAnimationFrame(() => confirmBtn.focus());
+
+            return new Promise(resolve => { _modal._resolve = resolve; });
+        }
+
+        function closeModal(result = false) {
+            const overlay = _modal.overlay();
+            overlay.classList.remove('is-visible');
+            if (_modal._resolve) { _modal._resolve(result); _modal._resolve = null; }
+            // Return focus to trigger element
+            if (_modal._trigger && typeof _modal._trigger.focus === 'function') {
+                _modal._trigger.focus();
+                _modal._trigger = null;
+            }
+        }
+
+        // Close via X button
+        _modal.closeX().addEventListener('click', () => closeModal(false));
+
+        // Close via backdrop click (non-critical modals)
+        _modal.overlay().addEventListener('click', e => {
+            if (e.target === _modal.overlay()) closeModal(false);
+        });
+
+        // Close via Escape key
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && _modal.overlay().classList.contains('is-visible')) {
+                closeModal(false);
+            }
+        });
+
+        // Trap focus within modal
+        _modal.overlay().addEventListener('keydown', e => {
+            if (e.key !== 'Tab') return;
+            const focusable = _modal.overlay().querySelectorAll(
+                'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            );
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last  = focusable[focusable.length - 1];
+            if (e.shiftKey) {
+                if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+            } else {
+                if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+            }
+        });
+
+        // About button: open modal with the subtitle/about text
+        const aboutBtn = document.getElementById('aboutBtn');
+        if (aboutBtn) {
+            aboutBtn.addEventListener('click', () => {
+                showModal({
+                    type: 'info',
+                    title: 'About Enjin Snap Wallet Exporter',
+                    message: '<p>Derive addresses and export keys of Enjin Snap wallet address based on your recovery phrase.</p>' +
+                             '<p>This tool derives Ethereum (BIP-44) and Enjin Snap ed25519 addresses (Matrixchain and Relaychain), displays public keys, and can export encrypted keystores compatible with the Enjin Wallet.</p>' +
+                             '<p>Runs entirely in your browser — no data is transmitted to any server. For maximum security, run offline and close this page after use.</p>',
+                    confirmLabel: 'Close'
+                });
+            });
+        }
+
         // ─── Local-first imports (vendor libs in ./libs/) with CDN fallback ──
         // This tries relative `./libs/...` files first so the page works fully offline
         let HDKey, mnemonicToSeedSync, validateMnemonic, wordlist, base58, secp256k1, keccak_256, blake2b, scryptAsync, nacl;
@@ -476,7 +922,10 @@
             keccak_256 = sha3Module.keccak_256;
             blake2b = blake2bModule.blake2b;
             scryptAsync = scryptModule.scryptAsync;
+            // The vendored tweetnacl is UMD — its IIFE populates self.nacl as a
+            // side-effect. The CDN +esm build provides a proper default export.
             nacl = naclModule.default || naclModule;
+            if (!nacl.sign && typeof self !== 'undefined' && self.nacl) nacl = self.nacl;
         } catch (e) {
             console.error('Failed to load cryptographic libraries (local or CDN):', e);
             throw new Error('Failed to load cryptographic libraries. For offline use, place the required +esm bundles in ./libs/ or open this page via a local HTTP server to use CDN fallbacks.');
@@ -485,7 +934,30 @@
         // Show status message indicating libraries are loaded
         const notice = document.getElementById('securityNotice');
         notice.className = 'status';
-        notice.innerHTML = '✅ <strong>Libraries Loaded:</strong> All cryptographic libraries have been loaded successfully. For maximum security, disconnect from the internet now and proceed with exporting your private keys and keystore file. Remember to close this page after use to maintain wallet security.';
+        notice.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="vertical-align:middle;"><circle cx="12" cy="12" r="11" fill="#16a34a"/><path d="M6 12l4 4 8-8" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> <strong>Libraries Loaded</strong><p style="margin:0.5rem 0 0 0;">All cryptographic libraries have been loaded successfully. For maximum security, disconnect from the internet now and proceed with exporting your private keys and keystore file. Remember to close this page after use to maintain wallet security.</p>';
+
+        // Focus the mnemonic textarea when the UI becomes available. Retry briefly if hidden.
+        function focusMnemonic(retries = 10) {
+            try {
+                const el = document.getElementById('mnemonic');
+                if (!el) return;
+                const style = window.getComputedStyle(el);
+                const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
+                if (isVisible) {
+                    el.focus({ preventScroll: true });
+                    const len = el.value ? el.value.length : 0;
+                    el.setSelectionRange(len, len);
+                } else if (retries > 0) {
+                    setTimeout(() => focusMnemonic(retries - 1), 200);
+                }
+            } catch (e) {
+                // silent
+            }
+        }
+
+        // Call now and also on DOMContentLoaded as a fallback
+        focusMnemonic();
+        document.addEventListener('DOMContentLoaded', () => focusMnemonic());
 
         // ─── Optional: sr25519 via Polkadot WASM ─────────────────────
         let sr25519Available = false;
@@ -714,7 +1186,12 @@
             if (!mnemonic) return;
 
             if (!validateMnemonic(mnemonic, wordlist)) {
-                alert('Invalid mnemonic. Please enter a valid 12 or 24 word BIP-39 recovery phrase.');
+                showModal({
+                    type: 'error',
+                    title: 'Invalid Recovery Phrase',
+                    message: 'Please enter a valid 12 or 24 word BIP-39 recovery phrase. Check for typos and ensure each word is separated by a single space.',
+                    confirmLabel: 'Try Again',
+                });
                 return;
             }
 
@@ -766,17 +1243,30 @@
                 const text = id === 'privateKey' ? realPkText
                            : document.getElementById(id).textContent;
                 copyText(text);
-                const orig = btn.textContent;
-                btn.textContent = '✓';
-                setTimeout(() => btn.textContent = orig, 1200);
+                // Preserve the original innerHTML (SVG icon) so we can restore it
+                const origHTML = btn.innerHTML;
+                // Temporary checkmark SVG feedback (keeps button size consistent)
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                setTimeout(() => btn.innerHTML = origHTML, 1200);
             });
         });
 
-        document.getElementById('togglePk').addEventListener('click', () => {
-            pkVisible = !pkVisible;
-            document.getElementById('privateKey').textContent =
-                pkVisible ? realPkText : '••••••••••••••••';
-        });
+        // Toggle private key visibility (with modern icon swap)
+        (function () {
+            const svgEye = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            const svgEyeOff = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8 .92-1.86 2.3-3.5 4-4.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3l18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            const toggle = document.getElementById('togglePk');
+            const pkEl = document.getElementById('privateKey');
+            if (!toggle || !pkEl) return;
+            toggle.innerHTML = svgEye;
+            toggle.addEventListener('click', function () {
+                pkVisible = !pkVisible;
+                pkEl.textContent = pkVisible ? realPkText : '••••••••••••••••';
+                this.setAttribute('aria-pressed', String(pkVisible));
+                this.title = pkVisible ? 'Hide private key' : 'Show private key';
+                this.innerHTML = pkVisible ? svgEyeOff : svgEye;
+            });
+        })();
 
         async function produceKeystore(format, password) {
             if (format === 'web3') {
@@ -797,10 +1287,8 @@
             }
 
             const pw  = document.getElementById('password').value;
-            const pw2 = document.getElementById('confirmPassword').value;
 
-            if (!pw)        { status.textContent = 'Password cannot be empty.';  status.className = 'error'; return; }
-            if (pw !== pw2) { status.textContent = 'Passwords do not match.';    status.className = 'error'; return; }
+            if (!pw) { status.textContent = 'Password cannot be empty.'; status.className = 'error'; return; }
 
             btn.disabled = true;
             const origText = btn.textContent;
@@ -837,6 +1325,42 @@
             }
         }
 
+        // Disable keystore action buttons until a password is provided
+        function updateKeystoreButtons() {
+            const pwField = document.getElementById('password');
+            const pw = pwField ? (pwField.value || '') : '';
+            const disabled = pw.trim() === '';
+            ['downloadWeb3Btn','copyWeb3Btn','downloadPolkadotBtn','copyPolkadotBtn'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.disabled = disabled;
+                el.setAttribute('aria-disabled', String(disabled));
+            });
+        }
+
+        const pwEl = document.getElementById('password');
+        if (pwEl) pwEl.addEventListener('input', updateKeystoreButtons);
+        // initialize state
+        updateKeystoreButtons();
+
+        // Password unmask toggle (uses inline SVG icons placed inside the input)
+        (function () {
+            const svgEye = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            const svgEyeOff = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8 .92-1.86 2.3-3.5 4-4.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3l18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            const toggle = document.getElementById('togglePassword');
+            const pw = document.getElementById('password');
+            if (!toggle || !pw) return;
+            // initialize icon (masked state)
+            toggle.innerHTML = svgEye;
+            toggle.addEventListener('click', function () {
+                const showing = pw.type === 'text';
+                pw.type = showing ? 'password' : 'text';
+                this.setAttribute('aria-pressed', String(!showing));
+                this.title = showing ? 'Show password' : 'Hide password';
+                this.innerHTML = showing ? svgEye : svgEyeOff;
+            });
+        })();
+
         document.getElementById('downloadWeb3Btn').addEventListener('click', function () { handleAction('web3', 'download', this); });
         document.getElementById('copyWeb3Btn').addEventListener('click', function () { handleAction('web3', 'copy', this); });
         document.getElementById('downloadPolkadotBtn').addEventListener('click', function () { handleAction('polkadot', 'download', this); });
@@ -845,7 +1369,6 @@
         window.addEventListener('beforeunload', () => {
             document.getElementById('mnemonic').value = '';
             document.getElementById('password').value = '';
-            document.getElementById('confirmPassword').value = '';
             if (currentSnap) {
                 if (currentSnap.seedBytes) currentSnap.seedBytes.fill(0);
                 if (currentSnap.publicKey) currentSnap.publicKey.fill(0);

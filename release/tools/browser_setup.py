@@ -77,9 +77,9 @@ def vendor_libs(libs_dir, web_dir):
     Download ESM bundles from jsDelivr CDN for offline browser use.
 
     The jsDelivr CDN provides pre-built ESM bundles that work directly in browsers.
-    These bundles use absolute import paths like '/npm/@noble/hashes@1.7.1/crypto/+esm.js'
-    for their internal dependencies, so we must mirror that directory structure under
-    the web root's /npm/ directory.
+    These bundles use relative import paths like './npm/@noble/hashes@1.7.1/crypto/+esm.js'
+    for their internal dependencies. Since the bundles live in libs/, we rewrite those
+    to '../npm/' so they resolve to the web root's /npm/ directory.
     """
     CDN = "https://cdn.jsdelivr.net"
 
@@ -108,11 +108,11 @@ def vendor_libs(libs_dir, web_dir):
         f"{CDN}/npm/tweetnacl@1.0.3/+esm":                 libs_dir / "tweetnacl@1.0.3.js",
     }
 
-    # ─── 2. Sub-module ESM bundles referenced via absolute /npm/ paths ───
-    # The jsDelivr ESM bundles use absolute imports like:
-    #   import "/npm/@noble/hashes@1.7.1/crypto/+esm.js"
-    # These resolve against the web server root, so they must live at
-    # <web_root>/npm/@noble/hashes@1.7.1/crypto/+esm.js
+    # ─── 2. Sub-module ESM bundles referenced by internal imports ───────
+    # The jsDelivr ESM bundles use relative imports like:
+    #   import "./npm/@noble/hashes@1.7.1/crypto/+esm.js"
+    # After downloading, we rewrite './npm/' to '../npm/' so they resolve
+    # from libs/ to the web root's npm/ directory.
     npm_submodules = {
         # @noble/hashes sub-modules
         f"{CDN}/npm/@noble/hashes@1.7.1/crypto/+esm":              "npm/@noble/hashes@1.7.1/crypto/+esm.js",
@@ -164,6 +164,25 @@ def vendor_libs(libs_dir, web_dir):
             ok_count += 1
         else:
             fail_count += 1
+
+    # ─── 3. Post-process: rewrite relative imports in libs/ bundles ─────
+    # jsDelivr bundles use './npm/' relative paths for sub-module imports.
+    # Since the bundles live in libs/, './npm/' resolves to libs/npm/ which
+    # doesn't exist. Rewrite to '../npm/' so they resolve to <web_root>/npm/.
+    print("Rewriting relative import paths in vendored bundles...")
+    rewrite_count = 0
+    for dest in esm_bundles.values():
+        if dest.exists():
+            content = dest.read_text(encoding='utf-8')
+            if '"./npm/' in content:
+                content = content.replace('"./npm/', '"../npm/')
+                dest.write_text(content, encoding='utf-8')
+                rewrite_count += 1
+                print(f"  ✓ Rewrote imports in {dest.name}")
+    if rewrite_count:
+        print(f"  Rewrote {rewrite_count} file(s).")
+    else:
+        print("  No files needed rewriting.")
 
     print()
     if fail_count:
