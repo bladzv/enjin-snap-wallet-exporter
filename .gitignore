@@ -133,3 +133,6 @@ enjin-snap-keystore-*.json
 logs.txt
 .github/actions.md
 .github/pr_description.md
+
+# Local machine files
+.DS_Store
