@@ -131,6 +131,5 @@ dmypy.json
 # Project specific
 enjin-snap-keystore-*.json
 logs.txt
-.github/ai-instructions.md
 .github/actions.md
 .github/pr_description.md
