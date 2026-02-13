@@ -1,8 +1,14 @@
-# 🔐 Enjin Snap Wallet Exporter
+<div align="center">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
-[![Security](https://img.shields.io/badge/Security-Offline%20First-green)]()
+# ![Enjin Snap Wallet Exporter](assets/favicon-32x32.png) Enjin Snap Wallet Exporter
+
+</div>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.8%2B-blue" alt="Python 3.8+"></a>
+  <img src="https://img.shields.io/badge/Security-Offline%20First-green" alt="Security">
+</p>
 
 Export [Enjin Snap](https://snaps.metamask.io/snap/npm/enjin-io/snap/) (MetaMask Snap) wallet keypairs as hex private keys or encrypted JSON keystores for importing into the **Enjin Wallet** or compatible wallets.
 
