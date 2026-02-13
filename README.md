@@ -35,7 +35,25 @@ This tool handles **mnemonics and private keys**. For maximum security:
 
 ## 🚀 Quick Start
 
-### Option 1: Standalone Executable (Recommended)
+### Option 1: Browser Interface
+
+**🌐 Live Demo**
+
+Try the browser interface online: **[Live Demo](https://bladzv.github.io/enjin-snap-wallet-exporter)**
+
+> **Note**: This demo runs online to load cryptographic libraries from CDN. Once all libraries are loaded (you'll see "Libraries Loaded"), you can disconnect from the internet for secure offline operation.
+
+**Online** (instant, uses CDN):
+- Open `release/web/index.html` in any modern browser
+
+**Offline** (guaranteed offline operation):
+```bash
+python3 release/tools/browser_setup.py
+# Select "offline" mode
+# Opens http://localhost:8000/index.html in your browser
+```
+
+### Option 2: Standalone Executable (Recommended)
 
 No Python installation required. Download pre-built binaries from the [releases](../../releases) page:
 
@@ -49,7 +67,7 @@ No Python installation required. Download pre-built binaries from the [releases]
 
 Keystores and private keys are saved in your current working directory.
 
-### Option 2: Python Script
+### Option 3: Python Script
 
 For users with Python installed:
 
@@ -67,18 +85,6 @@ python release/tools/enjin_snap_exporter.py
 ```
 
 The script auto-detects missing dependencies and offers to install them.
-
-### Option 3: Browser Interface
-
-**Online** (instant, uses CDN):
-- Open `release/web/index.html` in any modern browser
-
-**Offline** (guaranteed offline operation):
-```bash
-python3 release/tools/browser_setup.py
-# Select "offline" mode
-# Opens http://localhost:8000/index.html in your browser
-```
 
 ## � How It Works
 
